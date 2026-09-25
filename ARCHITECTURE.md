@@ -30,8 +30,9 @@ flowchart LR
 
 - No user accounts / login / JWT.
 - On create, issue opaque Bearer capability token (`usk_…`), store **SHA-256 hash only**.
-- `PATCH` deactivate requires `Authorization: Bearer <token>`; verified with `subtle.ConstantTimeCompare`.
+- `PATCH` deactivate and `GET .../analytics` require `Authorization: Bearer <token>`; verified with `subtle.ConstantTimeCompare`.
 - Create, redirect, and metadata remain public by design.
+- Each successful redirect records a `click_events` row (timestamp, referrer, user-agent) and increments `hit_count`.
 
 ## Redirect status
 

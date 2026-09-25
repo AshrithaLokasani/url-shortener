@@ -79,6 +79,11 @@ curl -s -i http://localhost:8080/my-link
 curl -s http://localhost:8080/api/v1/links/my-link
 # → 200 { code, original_url, hit_count, active, created_at }
 
+# 7b) Analytics (owner only) — after at least one redirect
+curl -s http://localhost:8080/api/v1/links/my-link/analytics \
+  -H "Authorization: Bearer $OWNER_TOKEN"
+# → 200 { code, clicks: [{ id, code, clicked_at, referrer, user_agent }, ...] }
+
 # 8) Deactivate without token (failure)
 curl -s -i -X PATCH http://localhost:8080/api/v1/links/my-link \
   -H 'Content-Type: application/json' \
@@ -149,6 +154,7 @@ Then `make run` with `.env.dev` pointing at `localhost:5432`.
 | `POST` | `/api/v1/links` | public | Create (`url`, optional `alias`) |
 | `GET` | `/{code}` | public | Redirect |
 | `GET` | `/api/v1/links/{code}` | public | Metadata |
+| `GET` | `/api/v1/links/{code}/analytics` | Bearer owner token | Per-click analytics |
 | `PATCH` | `/api/v1/links/{code}` | Bearer owner token | Set `{"active":false}` |
 | `GET` | `/healthz` | public | Liveness |
 
@@ -160,5 +166,4 @@ Then `make run` with `.env.dev` pointing at `localhost:5432`.
 ## Next steps
 
 - Optional TTL (`expires_at`) on create
-- Per-click analytics (timestamp, referrer, user-agent)
 - Deploy to DigitalOcean App Platform using the included Dockerfile

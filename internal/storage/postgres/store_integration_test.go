@@ -71,12 +71,24 @@ func TestStoreCreateGetConflictAndDeactivate(t *testing.T) {
 		t.Fatalf("expected conflict, got %v", err)
 	}
 
-	updated, err := store.IncrementHits(ctx, code)
+	updated, err := store.RecordClick(ctx, code, link.ClickEvent{
+		Referrer:  "https://ref.example",
+		UserAgent: "integration-test",
+		ClickedAt: time.Now().UTC(),
+	})
 	if err != nil {
-		t.Fatalf("increment: %v", err)
+		t.Fatalf("record click: %v", err)
 	}
 	if updated.HitCount != 1 {
 		t.Fatalf("hit_count = %d, want 1", updated.HitCount)
+	}
+
+	clicks, err := store.ListClicks(ctx, code, 10)
+	if err != nil {
+		t.Fatalf("list clicks: %v", err)
+	}
+	if len(clicks) != 1 || clicks[0].Referrer != "https://ref.example" {
+		t.Fatalf("unexpected clicks: %+v", clicks)
 	}
 
 	inactive, err := store.SetActive(ctx, code, false)

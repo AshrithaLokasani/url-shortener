@@ -16,9 +16,14 @@ func TestValidateAlias(t *testing.T) {
 	}{
 		{name: "valid", alias: "my-link", wantErr: false},
 		{name: "underscores", alias: "my_link_1", wantErr: false},
+		{name: "max length", alias: strings.Repeat("a", 32), wantErr: false},
 		{name: "too short", alias: "ab", wantErr: true},
+		{name: "too long", alias: strings.Repeat("a", 33), wantErr: true},
 		{name: "bad chars", alias: "my link!", wantErr: true},
-		{name: "reserved", alias: "api", wantErr: true},
+		{name: "dots", alias: "my.link", wantErr: true},
+		{name: "reserved api", alias: "api", wantErr: true},
+		{name: "reserved healthz case", alias: "Healthz", wantErr: true},
+		{name: "reserved metrics", alias: "metrics", wantErr: true},
 		{name: "empty", alias: "", wantErr: true},
 	}
 	for _, tt := range tests {
@@ -44,10 +49,15 @@ func TestValidateURL(t *testing.T) {
 	}{
 		{name: "https ok", raw: "https://example.com/path", wantErr: false},
 		{name: "http ok", raw: "http://example.com", wantErr: false},
+		{name: "with port", raw: "https://example.com:8443/a", wantErr: false},
 		{name: "javascript rejected", raw: "javascript:alert(1)", wantErr: true},
+		{name: "data rejected", raw: "data:text/html,hi", wantErr: true},
 		{name: "empty", raw: "", wantErr: true},
+		{name: "whitespace", raw: "   ", wantErr: true},
 		{name: "no host", raw: "https://", wantErr: true},
+		{name: "relative", raw: "/just/a/path", wantErr: true},
 		{name: "ftp rejected", raw: "ftp://files.example.com/a", wantErr: true},
+		{name: "malformed", raw: "http://[::1", wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -78,5 +88,26 @@ func TestRandomGeneratorAlphabetAndLength(t *testing.T) {
 		if !strings.ContainsRune(alphabet, c) {
 			t.Fatalf("unexpected rune %q in %q", c, got)
 		}
+	}
+}
+
+func TestRandomGeneratorCustomAndDefaultLength(t *testing.T) {
+	t.Parallel()
+	g := &code.RandomGenerator{Length: 10}
+	got, err := g.Generate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 10 {
+		t.Fatalf("length = %d, want 10", len(got))
+	}
+
+	gZero := &code.RandomGenerator{Length: 0}
+	got, err = gZero.Generate()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 7 {
+		t.Fatalf("default length = %d, want 7", len(got))
 	}
 }

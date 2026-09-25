@@ -62,7 +62,10 @@ func (s *Server) handleRedirect(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusNotFound, "not found")
 		return
 	}
-	l, err := s.svc.ResolveRedirect(r.Context(), code)
+	l, err := s.svc.ResolveRedirect(r.Context(), code, link.ClickInput{
+		Referrer:  r.Referer(),
+		UserAgent: r.UserAgent(),
+	})
 	if err != nil {
 		writeServiceError(w, err)
 		return
@@ -85,6 +88,47 @@ func (s *Server) handleMetadata(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:   l.CreatedAt,
 		ExpiresAt:   l.ExpiresAt,
 	})
+}
+
+func (s *Server) handleAnalytics(w http.ResponseWriter, r *http.Request) {
+	code := r.PathValue("code")
+	token, ok := bearerToken(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "missing or invalid Authorization Bearer token")
+		return
+	}
+	events, err := s.svc.Analytics(r.Context(), code, token, 100)
+	if err != nil {
+		writeServiceError(w, err)
+		return
+	}
+	out := make([]clickEventResponse, 0, len(events))
+	for _, e := range events {
+		out = append(out, clickEventResponse{
+			ID:        e.ID,
+			Code:      e.Code,
+			ClickedAt: e.ClickedAt,
+			Referrer:  e.Referrer,
+			UserAgent: e.UserAgent,
+		})
+	}
+	writeJSON(w, http.StatusOK, analyticsResponse{
+		Code:   code,
+		Clicks: out,
+	})
+}
+
+type clickEventResponse struct {
+	ID        int64     `json:"id"`
+	Code      string    `json:"code"`
+	ClickedAt time.Time `json:"clicked_at"`
+	Referrer  string    `json:"referrer"`
+	UserAgent string    `json:"user_agent"`
+}
+
+type analyticsResponse struct {
+	Code   string               `json:"code"`
+	Clicks []clickEventResponse `json:"clicks"`
 }
 
 func (s *Server) handleDeactivate(w http.ResponseWriter, r *http.Request) {

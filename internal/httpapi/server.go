@@ -11,10 +11,10 @@ import (
 
 // Server is the HTTP transport for the link service.
 type Server struct {
-	svc     *link.Service
-	logger  *slog.Logger
-	mux     *http.ServeMux
-	server  *http.Server
+	svc    *link.Service
+	logger *slog.Logger
+	mux    *http.ServeMux
+	server *http.Server
 }
 
 // New constructs an HTTP server bound to addr.
@@ -54,6 +54,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /healthz", s.handleHealthz)
 	s.mux.HandleFunc("POST /api/v1/links", s.handleCreate)
+	s.mux.HandleFunc("GET /api/v1/links/{code}/analytics", s.handleAnalytics)
 	s.mux.HandleFunc("GET /api/v1/links/{code}", s.handleMetadata)
 	s.mux.HandleFunc("PATCH /api/v1/links/{code}", s.handleDeactivate)
 	s.mux.HandleFunc("GET /{code}", s.handleRedirect)
